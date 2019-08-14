@@ -1,4 +1,4 @@
 FROM scratch
 EXPOSE 8080
-ADD src/bin /
+ADD bin /
 CMD ["/main"]
