@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
+	"client"
 	"github.com/dgrijalva/jwt-go"
-	"gitlab.com/LICOTEK/DuerOS/client"
 )
 
 const (
@@ -102,9 +102,9 @@ func (p *Processor) Process() interface{} {
 
 	return resp
 }
-func (p *Processor) GetDevices() interface{}      {
+func (p *Processor) GetDevices() interface{} {
 	resp := make(map[string]interface{})
-	resp ["requestId"] = p.Protocol["requestId"]
+	resp["requestId"] = p.Protocol["requestId"]
 	resp["intent"] = "get-devices"
 	devices, err := p.Client.GetDevices()
 	if err != nil {

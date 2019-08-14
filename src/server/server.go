@@ -3,7 +3,7 @@ package server
 import (
 	"net/http"
 
-	"gitlab.com/LICOTEK/DuerOS/miotprotocol"
+	"miotprotocol"
 )
 
 func handlerProtocol() http.HandlerFunc {

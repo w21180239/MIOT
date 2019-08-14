@@ -1,6 +1,6 @@
 package main
 
-import "gitlab.com/LICOTEK/DuerOS/server"
+import "server"
 
 func main() {
 	server := server.NewServer()
