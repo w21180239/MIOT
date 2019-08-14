@@ -9,8 +9,8 @@ if len(sys.argv)!=2 or sys.argv[1][0] != 'v':
     exit(-1)
 version = sys.argv[1]
 if platform.system() == 'Windows':
-    re = f'SET GOPATH={os.getcwd()}'
+    re = f'set GOPATH={os.getcwd()}'
 else:
     re = 'export GOPATH=$(dirname $(readlink -f $0))'
-re += f'&&SET CGO_ENABLED=0&&SET GOOS=linux&&go build -a -installsuffix cgo -o bin/main .&&docker build --no-cache -t licotek/magicscene-miot-adapter-service-prod:{version} .&&docker push licotek/magicscene-miot-adapter-service-prod:{version}'
+re += f'&&set CGO_ENABLED=0&&set GOOS=linux&&go build -a -installsuffix cgo -o bin/main .&&docker build --no-cache -t licotek/magicscene-miot-adapter-service-prod:{version} .&&docker push licotek/magicscene-miot-adapter-service-prod:{version}'
 os.system(re)
