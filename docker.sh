@@ -1,4 +1,4 @@
-docker stop licotek-aligenie
-docker rmi licotek-aligenie
-docker build -t licotek-aligenie:latest .
-docker run --name licotek-aligenie -d -p 8003:8080 --rm licotek-aligenie
+docker stop licotek/magicscene-miot-adapter-service-prod
+docker rmi licotek/magicscene-miot-adapter-service-prod
+docker build --no-cache -t licotek/magicscene-miot-adapter-service-prod:"$1" .
+docker push licotek/magicscene-miot-adapter-service-prod:"$1"

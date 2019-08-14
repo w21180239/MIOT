@@ -1,4 +1,4 @@
-package duerosprotocol
+package miotprotocol
 
 import (
 	"encoding/json"

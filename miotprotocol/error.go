@@ -1,4 +1,4 @@
-package duerosprotocol
+package miotprotocol
 
 const (
 	errorCodeInvalidateControlOrder   string = "INVALIDATE_CONTROL_ORDER"

@@ -3,7 +3,7 @@ package server
 import (
 	"net/http"
 
-	"gitlab.com/LICOTEK/DuerOS/duerosprotocol"
+	"gitlab.com/LICOTEK/DuerOS/miotprotocol"
 )
 
 func handlerProtocol() http.HandlerFunc {
@@ -21,7 +21,7 @@ func handlerProtocol() http.HandlerFunc {
 		//buf.ReadFrom(r.Body)
 		//fmt.Println(buf.String())
 
-		processor := duerosprotocol.NewProcessor(r)
+		processor := miotprotocol.NewProcessor(r)
 		result := processor.Process()
 		formatter.JSON(w, http.StatusOK, result)
 	}
