@@ -2,51 +2,20 @@ package miotprotocol
 
 import (
 	"client"
+	"constant"
 	"encoding/json"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"net/http"
-	//"reflect"
 	"strconv"
 	"time"
 )
-
-const (
-	debug bool = true
-)
-
-// Header is the Header of the protocol
-type Header struct {
-	Namespace      string `json:"namespace"`
-	Name           string `json:"name"`
-	MessageID      string `json:"messageId"`
-	PayloadVersion string `json:"payloadVersion"`
-}
-
-//Protocol is the whole data of the packet
-//type Protocol struct {
-//	Properties []Property             `json:"properties,omitempty"`
-//	Header     Header                 `json:"header"`
-//	Payload    map[string]interface{} `json:"payload"`
-//	Test       string                 `json:"test"`
-//}
 
 // Processor class can process a single Protocol
 type Processor struct {
 	Protocol map[string]interface{}
 	Token    string
 	Client   *client.Client
-}
-
-type Property struct {
-	Name  string      `json:"name"`
-	Value interface{} `json:"value"`
-}
-type TTT struct {
-	Name   string `json:"name"`
-	School string `json:"school"`
-	Good   string `json:"good"`
-	Bad    string `json:"bad"`
 }
 
 // NewProcessor Creates a new processor instance
@@ -88,7 +57,7 @@ func (p *Processor) Process() interface{} {
 		resp = p.GetDeviceStatus()
 	}
 
-	if debug {
+	if constant.Output_debug_information {
 		fmt.Printf("[DEBUG INFO]UserID=%v,ProjectID=%v\n", userID, projectID)
 		fmt.Println("[DEBUG INFO]Input data begin")
 		jsonStr, _ := json.MarshalIndent(p.Protocol, "", "  ")
@@ -99,7 +68,6 @@ func (p *Processor) Process() interface{} {
 		fmt.Println(string(jsonStr))
 		fmt.Println("[DEBUG INFO]Output data end")
 	}
-
 	return resp
 }
 func (p *Processor) GetDevices() interface{} {
@@ -113,10 +81,6 @@ func (p *Processor) GetDevices() interface{} {
 	}
 	resp["devices"] = make([]map[string]interface{}, 0)
 	for _, device := range devices {
-		/*if !device.CanUse() {
-			continue
-		}*/
-		//fmt.Println(device)
 		if len(device.GetType()) == 0 {
 			continue
 		} else {
@@ -127,14 +91,14 @@ func (p *Processor) GetDevices() interface{} {
 			} else {
 				deviceData["did"] = strconv.Itoa(device.DeviceID)
 			}
-			if device.DeviceProductName == "可调光调色LED灯Color版"{
+			if device.DeviceProductName == "可调光调色LED灯Color版" {
 				deviceData["type"] = "urn:miot-spec-v2:device:light:0000A001:lico-test:1:0000C802"
-			} else{
+			} else {
 				deviceData["type"] = "urn:miot-spec-v2:device:light:0000A001:lico-0000:1:0000C801"
 			}
 			deviceData["name"] = device.DeviceName
-			if device.ServiceName != ""{
-				deviceData["name"] = deviceData["name"].(string) + "("+device.ServiceName+")"
+			if device.ServiceName != "" {
+				deviceData["name"] = deviceData["name"].(string) + "(" + device.ServiceName + ")"
 			}
 			if device.ServiceState == "正常" {
 				resp["devices"] = append(
@@ -170,43 +134,43 @@ func (p *Processor) GetProperties() interface{} {
 		tmp_pro := resp["properties"].([]interface{})[i].(map[string]interface{})
 		for _, device := range devices {
 			if (device.ServiceType == "LIGHTINGGROUP" && resp["properties"].([]interface{})[i].(map[string]interface{})["did"] == "LIGHTINGGROUP"+strconv.Itoa(device.DeviceID)) || (resp["properties"].([]interface{})[i].(map[string]interface{})["did"] == strconv.Itoa(device.DeviceID)) {
-				if device.ServiceType == "LIGHTING"{
-					if tmp_pro["siid"] == float64(1){
-						switch tmp_pro["piid"]{
+				if device.ServiceType == "LIGHTING" {
+					if tmp_pro["siid"] == float64(1) {
+						switch tmp_pro["piid"] {
 						case float64(1):
 							tmp_pro["value"] = device.BrandName
 						default:
 							tmp_pro["value"] = "undefined"
 						}
 					}
-					if tmp_pro["siid"] == float64(2){
-						if tmp_pro["piid"] == float64(1){
-							for _,feature := range device.Characteristics{
-								if feature.CharacteristicName == "POWER"{
+					if tmp_pro["siid"] == float64(2) {
+						if tmp_pro["piid"] == float64(1) {
+							for _, feature := range device.Characteristics {
+								if feature.CharacteristicName == "POWER" {
 									tmp_pro["value"] = feature.CharacteristicValue
 									break
 								}
 							}
 						}
-						if tmp_pro["piid"] == float64(2){
-							for _,feature := range device.Characteristics{
-								if feature.CharacteristicName == "BRIGHTNESS"{
-									level,_ := strconv.Atoi(feature.CharacteristicValue)
+						if tmp_pro["piid"] == float64(2) {
+							for _, feature := range device.Characteristics {
+								if feature.CharacteristicName == "BRIGHTNESS" {
+									level, _ := strconv.Atoi(feature.CharacteristicValue)
 									level /= 254
 									level *= 100
-									if level == 0{
-										level +=1
+									if level == 0 {
+										level += 1
 									}
 									tmp_pro["value"] = uint8(level)
 									break
 								}
 							}
 						}
-						if tmp_pro["piid"] == float64(3){
-							for _,feature := range device.Characteristics{
-								if feature.CharacteristicName == "COLORTEMPERATURE"{
-									level,_ := strconv.Atoi(feature.CharacteristicValue)
-									level = (level-3000) / (6000-3000) * (20000-800) + 800
+						if tmp_pro["piid"] == float64(3) {
+							for _, feature := range device.Characteristics {
+								if feature.CharacteristicName == "COLORTEMPERATURE" {
+									level, _ := strconv.Atoi(feature.CharacteristicValue)
+									level = (level-3000)/(6000-3000)*(20000-800) + 800
 									tmp_pro["value"] = uint32(level)
 									break
 								}
