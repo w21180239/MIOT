@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"net/http"
+	//"reflect"
 	"strconv"
 	"time"
 )
@@ -127,8 +128,8 @@ func (p *Processor) GetDevices() interface{} {
 				deviceData["did"] = strconv.Itoa(device.DeviceID)
 			}
 			deviceData["type"] = "urn:miot-spec-v2:device:light:0000A001:lico-0000:1:0000C801"
-			deviceData["name"] = device.DeviceName+"_"+device.DeviceProductName
-			if device.DeviceState == "正常"{
+			deviceData["name"] = device.DeviceName + "_" + device.DeviceProductName
+			if device.DeviceState == "正常" {
 				resp["devices"] = append(
 					resp["devices"].([]map[string]interface{}),
 					deviceData,
@@ -151,25 +152,78 @@ func (p *Processor) GetDevices() interface{} {
 	//}
 	return resp
 }
-func (p *Processor) GetProperties() interface{}   { return nil }
-func (p *Processor) SetProperties() interface{}   { return nil }
-func (p *Processor) InvokeAction() interface{}    { return nil }
-func (p *Processor) Subscribe() interface{}       {
-	resp := make(map[string]interface{})
-	for key,value := range p.Protocol{
-		resp[key] = value
+func (p *Processor) GetProperties() interface{} {
+	resp := p.Protocol
+	devices, err := p.Client.GetDevices()
+	if err != nil {
+		return p.InternalError(errorCodeServiceError,
+			"Fail to get devices:"+err.Error())
 	}
-	for i:=0;i<len(resp["devices"].([]interface{}));i++{
+	for i := 0; i < len(resp["properties"].([]interface{})); i++ {
+		tmp_pro := resp["properties"].([]interface{})[i].(map[string]interface{})
+		for _, device := range devices {
+			if (device.ServiceType == "LIGHTINGGROUP" && resp["properties"].([]interface{})[i].(map[string]interface{})["did"] == "LIGHTINGGROUP"+strconv.Itoa(device.DeviceID)) || (resp["properties"].([]interface{})[i].(map[string]interface{})["did"] == strconv.Itoa(device.DeviceID)) {
+				if device.ServiceType == "LIGHTING"{
+					if tmp_pro["siid"] == float64(1){
+						switch tmp_pro["piid"]{
+						case float64(1):
+							tmp_pro["value"] = device.BrandName
+						default:
+							tmp_pro["value"] = "undefined"
+						}
+					}
+					if tmp_pro["siid"] == float64(2){
+						if tmp_pro["piid"] == float64(1){
+							for _,feature := range device.Characteristics{
+								if feature.CharacteristicName == "POWER"{
+									tmp_pro["value"] = feature.CharacteristicValue
+									break
+								}
+							}
+						}
+						if tmp_pro["piid"] == float64(2){
+							for _,feature := range device.Characteristics{
+								if feature.CharacteristicName == "BRIGHTNESS"{
+									level,_ := strconv.Atoi(feature.CharacteristicValue)
+									level /= 254
+									level *= 100
+									if level == 0{
+										level +=1
+									}
+									tmp_pro["value"] = uint8(level)
+									break
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		resp["properties"].([]interface{})[i].(map[string]interface{})["status"] = 0
+		//resp["properties"].([]interface{})[i].(map[string]interface{})["value"] = "undefined"
+	}
+	return resp
+}
+func (p *Processor) SetProperties() interface{} { return nil }
+func (p *Processor) InvokeAction() interface{}  { return nil }
+func (p *Processor) Subscribe() interface{} {
+	//resp := make(map[string]interface{})
+	//for key,value := range p.Protocol{
+	//	resp[key] = value
+	//}
+	resp := p.Protocol
+	for i := 0; i < len(resp["devices"].([]interface{})); i++ {
 		resp["devices"].([]interface{})[i].(map[string]interface{})["status"] = 0
 	}
 	return resp
 }
-func (p *Processor) Unsubscribe() interface{}     {
-	resp := make(map[string]interface{})
-	for key,value := range p.Protocol{
-		resp[key] = value
-	}
-	for i:=0;i<len(resp["devices"].([]interface{}));i++{
+func (p *Processor) Unsubscribe() interface{} {
+	//resp := make(map[string]interface{})
+	//for key,value := range p.Protocol{
+	//	resp[key] = value
+	//}
+	resp := p.Protocol
+	for i := 0; i < len(resp["devices"].([]interface{})); i++ {
 		resp["devices"].([]interface{})[i].(map[string]interface{})["status"] = 0
 	}
 	return resp
