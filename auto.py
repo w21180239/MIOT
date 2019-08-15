@@ -3,7 +3,7 @@ import platform
 import sys
 
 
-if len(sys.argv)!=2 or sys.argv[1][0] != 'v':
+if len(sys.argv)!=2:
     print('Wrong version, please try again!')
     print('Here is a right example:\npython auto.py v0.0.3')
     exit(-1)

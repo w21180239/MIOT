@@ -1,14 +1,13 @@
 package miotprotocol
 
 import (
+	"client"
 	"encoding/json"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"net/http"
 	"strconv"
 	"time"
-
-	"client"
-	"github.com/dgrijalva/jwt-go"
 )
 
 const (
@@ -105,7 +104,7 @@ func (p *Processor) Process() interface{} {
 func (p *Processor) GetDevices() interface{} {
 	resp := make(map[string]interface{})
 	resp["requestId"] = p.Protocol["requestId"]
-	resp["intent"] = "get-devices"
+	resp["intent"] = p.Protocol["intent"]
 	devices, err := p.Client.GetDevices()
 	if err != nil {
 		return p.InternalError(errorCodeServiceError,
@@ -116,41 +115,65 @@ func (p *Processor) GetDevices() interface{} {
 		/*if !device.CanUse() {
 			continue
 		}*/
-		fmt.Println(device)
+		//fmt.Println(device)
 		if len(device.GetType()) == 0 {
 			continue
 		} else {
 			deviceData := make(map[string]interface{})
 			if device.ServiceType == "LIGHTINGGROUP" {
-				deviceData["applianceId"] = "LIGHTINGGROUP" + strconv.Itoa(device.DeviceID)
+				deviceData["did"] = "LIGHTINGGROUP" + strconv.Itoa(device.DeviceID)
 				//continue
 			} else {
-				deviceData["applianceId"] = strconv.Itoa(device.DeviceID)
+				deviceData["did"] = strconv.Itoa(device.DeviceID)
 			}
-			deviceData["version"] = "1"
-			deviceData["applianceTypes"] = device.GetType()
-			fmt.Println(device.GetType(), "test")
-			deviceData["friendlyName"] = device.DeviceName
-			deviceData["manufacturerName"] = device.BrandName
-			deviceData["modelName"] = device.DeviceProductName
-			deviceData["friendlyDescription"] = "Licotek"
-			deviceData["isReachable"] = true
-			deviceData["attributes"], deviceData["actions"] = device.GetAttributesAndActions()
-			deviceData["additionalApplianceDetails"] = map[string]interface{}{"deviceType": device.GetType()[0]}
-
-			resp["devices"] = append(
-				resp["devices"].([]map[string]interface{}),
-				deviceData,
-			)
+			deviceData["type"] = "urn:miot-spec-v2:device:light:0000A001:lico-0000:1:0000C801"
+			deviceData["name"] = device.DeviceName+"_"+device.DeviceProductName
+			if device.DeviceState == "正常"{
+				resp["devices"] = append(
+					resp["devices"].([]map[string]interface{}),
+					deviceData,
+				)
+			}
 		}
 	}
+	//scenes, err := p.Client.GetScenes()
+	//for _, scene := range scenes {
+	//	fmt.Println(scene)
+	//	deviceData := make(map[string]interface{})
+	//	deviceData["did"] = strconv.Itoa(scene.SceneID)
+	//	deviceData["type"] = "urn:miot-spec-v2:device:light:0000A001:lico-0000:1:0000C801"
+	//	if scene.SceneState == "正常"{
+	//		resp["devices"] = append(
+	//			resp["devices"].([]map[string]interface{}),
+	//			deviceData,
+	//		)
+	//	}
+	//}
 	return resp
 }
 func (p *Processor) GetProperties() interface{}   { return nil }
 func (p *Processor) SetProperties() interface{}   { return nil }
 func (p *Processor) InvokeAction() interface{}    { return nil }
-func (p *Processor) Subscribe() interface{}       { return nil }
-func (p *Processor) Unsubscribe() interface{}     { return nil }
+func (p *Processor) Subscribe() interface{}       {
+	resp := make(map[string]interface{})
+	for key,value := range p.Protocol{
+		resp[key] = value
+	}
+	for i:=0;i<len(resp["devices"].([]interface{}));i++{
+		resp["devices"].([]interface{})[i].(map[string]interface{})["status"] = 0
+	}
+	return resp
+}
+func (p *Processor) Unsubscribe() interface{}     {
+	resp := make(map[string]interface{})
+	for key,value := range p.Protocol{
+		resp[key] = value
+	}
+	for i:=0;i<len(resp["devices"].([]interface{}));i++{
+		resp["devices"].([]interface{})[i].(map[string]interface{})["status"] = 0
+	}
+	return resp
+}
 func (p *Processor) GetDeviceStatus() interface{} { return nil }
 
 //func (p *Processor) processDiscovery() *Protocol {

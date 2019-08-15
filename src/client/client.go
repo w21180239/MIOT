@@ -39,17 +39,17 @@ func (c *Client) GetDevices() ([]Device, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	//var raw map[string][]Device
-	var raw interface{}
+	var raw map[string][]Device
+	//var raw interface{}
 	decoder := json.NewDecoder(resp.Body)
 	err = decoder.Decode(&raw)
 	if err != nil {
 		return nil, err
 	}
 	devices := make([]Device, 0)
-	//for _, val := range raw {
-	//	devices = append(devices, val...)
-	//}
+	for _, val := range raw {
+		devices = append(devices, val...)
+	}
 	return devices, nil
 
 }
