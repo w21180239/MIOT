@@ -125,68 +125,127 @@ func (p *Processor) GetDevices() interface{} {
 }
 func (p *Processor) GetProperties() interface{} {
 	resp := p.Protocol
-	devices, err := p.Client.GetDevices()
-	if err != nil {
-		return p.InternalError(errorCodeServiceError,
-			"Fail to get devices:"+err.Error())
-	}
 	for i := 0; i < len(resp["properties"].([]interface{})); i++ {
+		deviceID, _ := strconv.Atoi(resp["properties"].([]interface{})[i].(map[string]interface{})["did"].(string))
+		device, _ := p.Client.GetDeviceByID(deviceID)
 		tmp_pro := resp["properties"].([]interface{})[i].(map[string]interface{})
-		for _, device := range devices {
-			if (device.ServiceType == "LIGHTINGGROUP" && resp["properties"].([]interface{})[i].(map[string]interface{})["did"] == "LIGHTINGGROUP"+strconv.Itoa(device.DeviceID)) || (resp["properties"].([]interface{})[i].(map[string]interface{})["did"] == strconv.Itoa(device.DeviceID)) {
-				if device.ServiceType == "LIGHTING" {
-					if tmp_pro["siid"] == float64(1) {
-						switch tmp_pro["piid"] {
-						case float64(1):
-							tmp_pro["value"] = device.BrandName
-						default:
-							tmp_pro["value"] = "undefined"
+		if device.ServiceType == "LIGHTING" {
+			if tmp_pro["siid"] == float64(1) {
+				switch tmp_pro["piid"] {
+				case float64(1):
+					tmp_pro["value"] = device.BrandName
+				default:
+					tmp_pro["value"] = "undefined"
+				}
+			}
+			if tmp_pro["siid"] == float64(2) {
+				if tmp_pro["piid"] == float64(1) {
+					for _, feature := range device.Characteristics {
+						if feature.CharacteristicName == "POWER" {
+							tmp_pro["value"] = feature.CharacteristicValue
+							break
 						}
 					}
-					if tmp_pro["siid"] == float64(2) {
-						if tmp_pro["piid"] == float64(1) {
-							for _, feature := range device.Characteristics {
-								if feature.CharacteristicName == "POWER" {
-									tmp_pro["value"] = feature.CharacteristicValue
-									break
-								}
-							}
+				}
+				if tmp_pro["piid"] == float64(2) {
+					for _, feature := range device.Characteristics {
+						if feature.CharacteristicName == "BRIGHTNESS" {
+							level, _ := strconv.Atoi(feature.CharacteristicValue)
+							tmp_level := float64(level)
+							level = int((tmp_level-1)/(254-1)*(100-1) + 1)
+							tmp_pro["value"] = uint8(level + 1)
+							break
 						}
-						if tmp_pro["piid"] == float64(2) {
-							for _, feature := range device.Characteristics {
-								if feature.CharacteristicName == "BRIGHTNESS" {
-									level, _ := strconv.Atoi(feature.CharacteristicValue)
-									level /= 254
-									level *= 100
-									if level == 0 {
-										level += 1
-									}
-									tmp_pro["value"] = uint8(level)
-									break
-								}
-							}
-						}
-						if tmp_pro["piid"] == float64(3) {
-							for _, feature := range device.Characteristics {
-								if feature.CharacteristicName == "COLORTEMPERATURE" {
-									level, _ := strconv.Atoi(feature.CharacteristicValue)
-									level = (level-3000)/(6000-3000)*(20000-800) + 800
-									tmp_pro["value"] = uint32(level)
-									break
-								}
-							}
+					}
+				}
+				if tmp_pro["piid"] == float64(3) {
+					for _, feature := range device.Characteristics {
+						if feature.CharacteristicName == "COLORTEMPERATURE" {
+							level, _ := strconv.Atoi(feature.CharacteristicValue)
+							tmp_level := float64(level)
+							level = int((tmp_level-3000)/(6000-3000)*(20000-800) + 800)
+							tmp_pro["value"] = uint32(level + 1)
+							break
 						}
 					}
 				}
 			}
 		}
 		resp["properties"].([]interface{})[i].(map[string]interface{})["status"] = 0
-		//resp["properties"].([]interface{})[i].(map[string]interface{})["value"] = "undefined"
 	}
 	return resp
 }
-func (p *Processor) SetProperties() interface{} { return nil }
-func (p *Processor) InvokeAction() interface{}  { return nil }
+func (p *Processor) SetProperties() interface{} {
+	resp := p.Protocol
+	for i := 0; i < len(resp["properties"].([]interface{})); i++ {
+		action := ""
+		var value int
+		deviceID, _ := strconv.Atoi(resp["properties"].([]interface{})[i].(map[string]interface{})["did"].(string))
+		device, _ := p.Client.GetDeviceByID(deviceID)
+		tmp_pro := resp["properties"].([]interface{})[i].(map[string]interface{})
+		if device.ServiceType == "LIGHTING" {
+			if tmp_pro["siid"] == float64(2) {
+				if tmp_pro["piid"] == float64(1) {
+					if tmp_pro["value"].(bool) {
+						action = "TURNONLIGHT"
+					} else {
+						action = "TURNOFFLIGHT"
+					}
+				}
+				if tmp_pro["piid"] == float64(2) {
+					action = "BRIGHTNESSSET"
+					tmp_value := tmp_pro["value"].(float64)
+					value = int((tmp_value-1)/(100-1)*(254-1) + 1)
+				}
+
+			}
+		}
+		err := p.Client.PostAction(deviceID, action, value)
+		if err != nil {
+			return p.InternalError(errorCodeServiceError,
+				err.Error())
+		}
+		resp["properties"].([]interface{})[i].(map[string]interface{})["status"] = 0
+	}
+	return resp
+}
+func (p *Processor) InvokeAction() interface{} {
+	resp := p.Protocol
+	action := ""
+	var value int
+	deviceID, _ := strconv.Atoi(resp["action"].(map[string]interface{})["did"].(string))
+	device, _ := p.Client.GetDeviceByID(deviceID)
+	tmp_pro := resp["action"].(map[string]interface{})
+	if device.ServiceType == "LIGHTING" {
+		switch tmp_pro["aiid"] {
+		case float64(1):
+			if tmp_pro["in"].([]interface{})[0].(bool) {
+				action = "TURNONLIGHT"
+			} else {
+				action = "TURNOFFLIGHT"
+			}
+			resp["action"].(map[string]interface{})["out"] = tmp_pro["in"]
+		case float64(2):
+			action = "BRIGHTNESSSET"
+			tmp_value := tmp_pro["in"].([]interface{})[0].(float64) + 1
+			value = int((tmp_value-1)/(100-1)*(254-1) + 1)
+			var out = []float64{tmp_value}
+			resp["action"].(map[string]interface{})["out"] = out
+		case float64(3):
+			action = "BRIGHTNESSSET"
+			tmp_value := tmp_pro["in"].([]interface{})[0].(float64) - 1
+			value = int((tmp_value-1)/(100-1)*(254-1) + 1)
+			var out = []float64{tmp_value}
+			resp["action"].(map[string]interface{})["out"] = out
+		}
+	}
+	err := p.Client.PostAction(deviceID, action, value)
+	if err != nil {
+		return p.InternalError(errorCodeServiceError,
+			err.Error())
+	}
+	return resp
+}
 func (p *Processor) Subscribe() interface{} {
 	//resp := make(map[string]interface{})
 	//for key,value := range p.Protocol{
