@@ -10,6 +10,11 @@ import (
 	"strconv"
 )
 
+const (
+	debug   bool   = true
+	cookies string = "eyJhbGciOiJIUzUxMiJ9.eyJhdXQiOlsiVVNFUiJdLCJleHAiOjE1NjU4NjAyODAsImlhdCI6MTU2NTg1ODQ4MCwicm9sIjpbIkZhbWlseUN1c3RvbWVyIl0sImp0aSI6IjE5In0.TTMi85AwTpIOljx-44IPMalHY-MunTTwhRAZW1Kdt_90MDxOe8zy9_5n_D1mc6YMhRtHeA-sd8ySrLysm919zg"
+)
+
 type Client struct {
 	UserID    string
 	ProjectID string
@@ -25,15 +30,26 @@ func NewClient(userID, projectID string) *Client {
 }
 
 func (c *Client) Host() string {
-
-	return "http://smart-home-service:8080/"
-
+	if debug {
+		return "https://www.homepluscloud.com:8443/api/"
+	} else {
+		return "http://smart-home-service:8080/"
+	}
 }
 
 func (c *Client) GetDevices() ([]Device, error) {
-
+	var resp *http.Response
+	var err error
 	url := c.Host() + "projects/" + c.ProjectID + "/device-discovery"
-	resp, err := http.Get(url)
+	if debug {
+		client := &http.Client{}
+		req, _ := http.NewRequest("GET", url, nil)
+		cookie := &http.Cookie{Name: "AccessToken", Value: cookies, HttpOnly: true}
+		req.AddCookie(cookie)
+		resp, err = client.Do(req)
+	} else {
+		resp, err = http.Get(url)
+	}
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
