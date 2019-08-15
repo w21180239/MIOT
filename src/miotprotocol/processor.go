@@ -127,9 +127,16 @@ func (p *Processor) GetDevices() interface{} {
 			} else {
 				deviceData["did"] = strconv.Itoa(device.DeviceID)
 			}
-			deviceData["type"] = "urn:miot-spec-v2:device:light:0000A001:lico-0000:1:0000C801"
-			deviceData["name"] = device.DeviceName + "_" + device.DeviceProductName
-			if device.DeviceState == "正常" {
+			if device.DeviceProductName == "可调光调色LED灯Color版"{
+				deviceData["type"] = "urn:miot-spec-v2:device:light:0000A001:lico-test:1:0000C802"
+			} else{
+				deviceData["type"] = "urn:miot-spec-v2:device:light:0000A001:lico-0000:1:0000C801"
+			}
+			deviceData["name"] = device.DeviceName
+			if device.ServiceName != ""{
+				deviceData["name"] = deviceData["name"].(string) + "("+device.ServiceName+")"
+			}
+			if device.ServiceState == "正常" {
 				resp["devices"] = append(
 					resp["devices"].([]map[string]interface{}),
 					deviceData,
@@ -191,6 +198,16 @@ func (p *Processor) GetProperties() interface{} {
 										level +=1
 									}
 									tmp_pro["value"] = uint8(level)
+									break
+								}
+							}
+						}
+						if tmp_pro["piid"] == float64(3){
+							for _,feature := range device.Characteristics{
+								if feature.CharacteristicName == "COLORTEMPERATURE"{
+									level,_ := strconv.Atoi(feature.CharacteristicValue)
+									level = (level-3000) / (6000-3000) * (20000-800) + 800
+									tmp_pro["value"] = uint32(level)
 									break
 								}
 							}
