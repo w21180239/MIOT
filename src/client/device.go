@@ -153,3 +153,11 @@ func (d *Device) CanUse() (ok bool) {
 	return true
 
 }
+func (d *Device) GetCharacteristicsByName(name string) string {
+	for _, feature := range d.Characteristics {
+		if feature.CharacteristicName == name {
+			return feature.CharacteristicValue
+		}
+	}
+	return "Can not find value"
+}

@@ -240,3 +240,4 @@ func (c *Client) GetDeviceByID(deviceID int) (*Device, error) {
 	return device, nil
 
 }
+
